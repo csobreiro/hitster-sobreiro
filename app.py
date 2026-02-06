@@ -82,7 +82,6 @@ def criar_novo_excel(nome_ficheiro):
 
     random.shuffle(musicas_final)
     df = pd.DataFrame(musicas_final)
-    # Insere a numeração de 1 a 500 para o Excel
     df.insert(0, 'N_Carta', range(1, len(df) + 1))
     df.to_excel(f"{nome_ficheiro}.xlsx", index=False)
     status.success(f"✨ Baralho '{nome_ficheiro}.xlsx' pronto!")
@@ -94,7 +93,7 @@ tab1, tab2 = st.tabs(["▶️ Jogar", "⚙️ Criar Baralhos"])
 
 with tab2:
     st.header("Fábrica de Baralhos SOBREIRO")
-    nome_input = st.text_input("Nome do novo baralho (ex: Mix_Total):")
+    nome_input = st.text_input("Nome do novo baralho (ex: Mix_Sobreiro):")
     if st.button("🚀 Gerar e Guardar Excel"):
         if nome_input:
             criar_novo_excel(nome_input)
@@ -123,23 +122,26 @@ with tab1:
             
             st.markdown(f"### 🔊 A carregar Carta #{num}")
 
-            # PLAYER PROTEGIDO: Impede saltos para a app e esconde o título com uma barra preta
+            # PLAYER ANTI-APP: Usa youtube-nocookie e parâmetros para forçar o browser
             st.components.v1.html(f"""
-                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden;">
+                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden; -webkit-mask-image: -webkit-radial-gradient(white, black);">
                     <iframe 
-                        src="https://www.youtube.com/embed/{video_id}?autoplay=0&rel=0&showinfo=0&controls=1&playsinline=1" 
+                        src="https://www.youtube-nocookie.com/embed/{video_id}?autoplay=0&rel=0&controls=1&playsinline=1&enablejsapi=1&origin={st.get_option('browser.serverAddress')}" 
                         width="100%" 
                         height="160" 
                         frameborder="0" 
                         allow="autoplay; encrypted-media" 
-                        allowfullscreen>
+                        allowfullscreen
+                        style="pointer-events: auto;">
                     </iframe>
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 10; display: flex; align-items: center; justify-content: center; color: #444; font-family: sans-serif; font-size: 11px; letter-spacing: 1px;">
-                        SOBREIRO PLAYER • MODO JOGO ATIVO
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; color: #555; font-family: sans-serif; font-size: 11px; letter-spacing: 1px; pointer-events: none; border-bottom: 1px solid #222;">
+                        🔒 SOBREIRO PLAYER • TÍTULO OCULTO
                     </div>
                 </div>
-            """, height=170)
+            """, height=180)
             
+            st.caption("Clica no Play no centro. Se o telemóvel pedir para abrir em ecrã inteiro, recusa para não veres o título.")
+
             if st.button("Revelar Resposta 🔍"):
                 st.success(f"🎵 **{musica['Titulo']}**")
                 st.metric("Ano Original", musica['Ano'])

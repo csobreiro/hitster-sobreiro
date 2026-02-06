@@ -10,20 +10,7 @@ import glob
 # --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Hitster by SOBREIRO", page_icon="🔥", layout="centered")
 
-# --- TRUQUE VISUAL (CSS) ---
-# Isto "achata" o vídeo para que pareça um player de áudio e não mostre a imagem (spoiler)
-st.markdown("""
-    <style>
-    iframe {
-        height: 80px !important;
-        border-radius: 10px;
-    }
-    .stVideo {
-        height: 80px !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
+# Identificação para a base de dados de música
 mb.set_useragent("HitsterSobreiroApp", "3.0", "teu@email.com")
 
 # --- FONTES ---
@@ -95,6 +82,7 @@ def criar_novo_excel(nome_ficheiro):
 
     random.shuffle(musicas_final)
     df = pd.DataFrame(musicas_final)
+    # Insere a numeração de 1 a 500 para o Excel
     df.insert(0, 'N_Carta', range(1, len(df) + 1))
     df.to_excel(f"{nome_ficheiro}.xlsx", index=False)
     status.success(f"✨ Baralho '{nome_ficheiro}.xlsx' pronto!")
@@ -105,9 +93,9 @@ st.title("🔥 Hitster by SOBREIRO")
 tab1, tab2 = st.tabs(["▶️ Jogar", "⚙️ Criar Baralhos"])
 
 with tab2:
-    st.header("Fábrica de Baralhos")
-    nome_input = st.text_input("Nome do novo baralho (sem .xlsx):")
-    if st.button("🚀 Gerar Ficheiro Excel"):
+    st.header("Fábrica de Baralhos SOBREIRO")
+    nome_input = st.text_input("Nome do novo baralho (ex: Mix_Total):")
+    if st.button("🚀 Gerar e Guardar Excel"):
         if nome_input:
             criar_novo_excel(nome_input)
             st.cache_data.clear()
@@ -118,7 +106,7 @@ with tab1:
     ficheiros = glob.glob("*.xlsx")
     
     if ficheiros:
-        escolha = st.selectbox("Selecione o baralho:", ficheiros)
+        escolha = st.selectbox("Escolhe o teu baralho:", ficheiros)
         
         @st.cache_data
         def carregar_dados(nome):
@@ -131,15 +119,31 @@ with tab1:
 
         if num:
             musica = df_jogo[df_jogo['N_Carta'] == num].iloc[0]
-            st.markdown(f"### 🔊 A carregar Carta #{num}")
+            video_id = musica['Link'].split("v=")[-1].split("&")[0]
             
-            # Player de vídeo comprimido pelo CSS para funcionar bem em Mobile e PC
-            st.video(musica['Link'])
+            st.markdown(f"### 🔊 A carregar Carta #{num}")
+
+            # PLAYER PROTEGIDO: Impede saltos para a app e esconde o título com uma barra preta
+            st.components.v1.html(f"""
+                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden;">
+                    <iframe 
+                        src="https://www.youtube.com/embed/{video_id}?autoplay=0&rel=0&showinfo=0&controls=1&playsinline=1" 
+                        width="100%" 
+                        height="160" 
+                        frameborder="0" 
+                        allow="autoplay; encrypted-media" 
+                        allowfullscreen>
+                    </iframe>
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 10; display: flex; align-items: center; justify-content: center; color: #444; font-family: sans-serif; font-size: 11px; letter-spacing: 1px;">
+                        SOBREIRO PLAYER • MODO JOGO ATIVO
+                    </div>
+                </div>
+            """, height=170)
             
             if st.button("Revelar Resposta 🔍"):
                 st.success(f"🎵 **{musica['Titulo']}**")
-                st.metric("Ano", musica['Ano'])
+                st.metric("Ano Original", musica['Ano'])
                 if musica['Origem'] == "Fogofrio":
                     st.write("🔥 *Curadoria SOBREIRO*")
     else:
-        st.warning("⚠️ Nenhum baralho encontrado. Vai à aba 'Criar Baralhos'.")
+        st.warning("⚠️ Nenhum baralho encontrado. Vai a 'Criar Baralhos'.")

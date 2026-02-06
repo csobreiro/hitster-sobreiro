@@ -7,10 +7,26 @@ import random
 import os
 import glob
 
-# --- CONFIGURAÇÃO ---
-st.set_page_config(page_title="Hitster by SOBREIRO", page_icon="🔥")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Hitster by SOBREIRO", page_icon="🔥", layout="centered")
+
+# --- TRUQUE VISUAL (CSS) ---
+# Isto "achata" o vídeo para que pareça um player de áudio e não mostre a imagem (spoiler)
+st.markdown("""
+    <style>
+    iframe {
+        height: 80px !important;
+        border-radius: 10px;
+    }
+    .stVideo {
+        height: 80px !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 mb.set_useragent("HitsterSobreiroApp", "3.0", "teu@email.com")
 
+# --- FONTES ---
 URL_FOGOFRIO = "https://www.youtube.com/playlist?list=PLrMihvbkFsqCvEtiTvKoY78wzNa1udsfs"
 OUTRAS_FONTES = [
     "https://www.youtube.com/playlist?list=PLjg3drSMULZHbK0N6BGTCev1xdYX4gT9f",
@@ -20,14 +36,6 @@ OUTRAS_FONTES = [
 ]
 
 # --- FUNÇÕES ---
-
-def obter_url_audio_direto(youtube_url):
-    ydl_opts = {'format': 'bestaudio/best', 'quiet': True, 'no_warnings': True}
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        try:
-            info = ydl.extract_info(youtube_url, download=False)
-            return info['url']
-        except: return None
 
 def buscar_ano(titulo):
     busca = titulo.split('(')[0].split('[')[0].replace('Official Video', '').strip()
@@ -85,15 +93,11 @@ def criar_novo_excel(nome_ficheiro):
                             progresso.progress(len(musicas_final) / 500)
             except: continue
 
-    # Mistura tudo
     random.shuffle(musicas_final)
-    
-    # CRIA O DATAFRAME E ADICIONA A COLUNA DE NUMERAÇÃO NO EXCEL
     df = pd.DataFrame(musicas_final)
-    df.insert(0, 'N_Carta', range(1, len(df) + 1)) # Cria a coluna na posição 0
-    
+    df.insert(0, 'N_Carta', range(1, len(df) + 1))
     df.to_excel(f"{nome_ficheiro}.xlsx", index=False)
-    status.success(f"✨ Baralho '{nome_ficheiro}.xlsx' criado com numeração de 1 a {len(df)}!")
+    status.success(f"✨ Baralho '{nome_ficheiro}.xlsx' pronto!")
 
 # --- INTERFACE ---
 st.title("🔥 Hitster by SOBREIRO")
@@ -101,11 +105,12 @@ st.title("🔥 Hitster by SOBREIRO")
 tab1, tab2 = st.tabs(["▶️ Jogar", "⚙️ Criar Baralhos"])
 
 with tab2:
-    st.header("Fábrica de Baralhos SOBREIRO")
-    nome_input = st.text_input("Nome do novo baralho:")
+    st.header("Fábrica de Baralhos")
+    nome_input = st.text_input("Nome do novo baralho (sem .xlsx):")
     if st.button("🚀 Gerar Ficheiro Excel"):
         if nome_input:
             criar_novo_excel(nome_input)
+            st.cache_data.clear()
         else:
             st.error("Escreve um nome para o ficheiro!")
 
@@ -113,7 +118,7 @@ with tab1:
     ficheiros = glob.glob("*.xlsx")
     
     if ficheiros:
-        escolha = st.selectbox("Escolhe o teu baralho:", ficheiros)
+        escolha = st.selectbox("Selecione o baralho:", ficheiros)
         
         @st.cache_data
         def carregar_dados(nome):
@@ -125,18 +130,16 @@ with tab1:
         num = st.number_input(f"Nº da carta (1 a {len(df_jogo)}):", min_value=1, max_value=len(df_jogo), step=1, value=None)
 
         if num:
-            # Procura a música que tem o número correspondente na coluna 'N_Carta'
             musica = df_jogo[df_jogo['N_Carta'] == num].iloc[0]
-            st.markdown(f"### 🔊 A tocar Carta #{num}")
+            st.markdown(f"### 🔊 A carregar Carta #{num}")
             
-            url_direta = obter_url_audio_direto(musica['Link'])
-            if url_direta:
-                st.audio(url_direta)
+            # Player de vídeo comprimido pelo CSS para funcionar bem em Mobile e PC
+            st.video(musica['Link'])
             
             if st.button("Revelar Resposta 🔍"):
                 st.success(f"🎵 **{musica['Titulo']}**")
                 st.metric("Ano", musica['Ano'])
                 if musica['Origem'] == "Fogofrio":
-                    st.caption("🔥 Curadoria SOBREIRO: Esta música veio da tua playlist principal!")
+                    st.write("🔥 *Curadoria SOBREIRO*")
     else:
-        st.warning("Nenhum baralho encontrado. Vai a 'Criar Baralhos'.")
+        st.warning("⚠️ Nenhum baralho encontrado. Vai à aba 'Criar Baralhos'.")

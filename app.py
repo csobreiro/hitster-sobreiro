@@ -91,4 +91,48 @@ def criar_novo_excel(nome_ficheiro):
                     if m and len(musicas_final) < 500:
                         ano = buscar_ano(m['title'])
                         if ano != "???":
-                            musicas_final
+                            musicas_final.append({"Link": f"https://www.youtube.com/watch?v={m['id']}", "Titulo": m['title'], "Ano": ano, "Origem": "Geral"})
+                            progresso.progress(len(musicas_final) / 500)
+            except: continue
+    random.shuffle(musicas_final)
+    df = pd.DataFrame(musicas_final)
+    df.insert(0, 'N_Carta', range(1, len(df) + 1))
+    df.to_excel(f"{nome_ficheiro}.xlsx", index=False)
+    status.success(f"✨ Pronto!")
+
+# --- INTERFACE ---
+st.title("🔥 Hitster by SOBREIRO")
+tab1, tab2 = st.tabs(["▶️ Jogar", "⚙️ Criar Baralhos"])
+
+with tab2:
+    nome_input = st.text_input("Nome do novo baralho:")
+    if st.button("🚀 Gerar e Guardar Excel"):
+        if nome_input:
+            criar_novo_excel(nome_input)
+            st.cache_data.clear()
+
+with tab1:
+    ficheiros = glob.glob("*.xlsx")
+    if ficheiros:
+        escolha = st.selectbox("Escolhe o teu baralho:", ficheiros)
+        @st.cache_data
+        def carregar_dados(nome): return pd.read_excel(nome)
+        df_jogo = carregar_dados(escolha)
+        st.divider()
+        num = st.number_input(f"Nº da carta (1 a {len(df_jogo)}):", min_value=1, max_value=len(df_jogo), step=1, value=None)
+        if num:
+            musica = df_jogo[df_jogo['N_Carta'] == num].iloc[0]
+            video_id = musica['Link'].split("v=")[-1].split("&")[0]
+            st.markdown(f"### 🔊 Carta #{num}")
+            st.components.v1.html(f"""
+                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden;">
+                    <iframe src="https://www.youtube-nocookie.com/embed/{video_id}?autoplay=0&rel=0&controls=1&playsinline=1" width="100%" height="160" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; color: #555; font-family: sans-serif; font-size: 11px; pointer-events: none; border-bottom: 1px solid #222;">
+                        🔒 SOBREIRO PLAYER • TÍTULO OCULTO
+                    </div>
+                </div>
+            """, height=180)
+            if st.button("Revelar Resposta 🔍"):
+                st.success(f"🎵 **{musica['Titulo']}**")
+                st.metric("Ano", musica['Ano'])
+    else: st.warning("⚠️ Cria um baralho primeiro.")

@@ -20,7 +20,7 @@ def get_base64(bin_file):
 # Tenta aplicar o fundo.png
 try:
     if os.path.exists('fundo.png'):
-        bin_str = get_base64('fundo.png')
+        bin_str = get_base64('Fundo.png')
         st.markdown(f"""
             <style>
             .stApp {{
@@ -136,3 +136,4 @@ with tab1:
                 st.success(f"🎵 **{musica['Titulo']}**")
                 st.metric("Ano", musica['Ano'])
     else: st.warning("⚠️ Cria um baralho primeiro.")
+

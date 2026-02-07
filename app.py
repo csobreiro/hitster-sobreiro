@@ -64,10 +64,10 @@ def add_bg_from_local(image_file):
         st.error(f"⚠️ Erro: O ficheiro '{image_file}' não foi encontrado no GitHub!")
 
 # Aplicar o fundo
-add_bg_from_local('fundo.png')
+add_bg_from_local('Fundo.png')
 
 # Identificação para MusicBrainz
-mb.set_useragent("HitsterSobreiroApp", "3.0", "teu@email.com")
+mb.set_useragent("HitsterSobreiroApp", "3.0", "carlos.mateus.sobreiro@email.com")
 
 # --- 3. FONTES ---
 URL_FOGOFRIO = "https://www.youtube.com/playlist?list=PLrMihvbkFsqCvEtiTvKoY78wzNa1udsfs"
@@ -169,3 +169,4 @@ with tab1:
                     st.write("🔥 *Curadoria SOBREIRO*")
     else:
         st.warning("⚠️ Cria um baralho primeiro na aba lateral.")
+

@@ -8,45 +8,68 @@ import os
 import glob
 import base64
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Hitster by SOBREIRO", page_icon="🔥", layout="centered")
+# --- 1. CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(
+    page_title="Hitster by SOBREIRO", 
+    page_icon="🔥", 
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# --- FUNÇÃO PARA O FUNDO LOCAL ---
-def get_base64(bin_file):
-    with open(bin_file, 'rb') as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
-
-# Tenta aplicar o fundo.png
-try:
-    if os.path.exists('fundo.png'):
-        bin_str = get_base64('Fundo.png')
-        st.markdown(f"""
+# --- 2. FUNÇÃO PARA CARREGAR O FUNDO LOCAL (ANTI-BRANCO) ---
+def add_bg_from_local(image_file):
+    if os.path.exists(image_file):
+        with open(image_file, "rb") as f:
+            encoded_string = base64.b64encode(f.read())
+        st.markdown(
+            f"""
             <style>
+            /* Define a imagem de fundo na camada base */
             .stApp {{
-                background-image: url("data:image/png;base64,{bin_str}");
+                background-image: url("data:image/png;base64,{encoded_string.decode()}");
                 background-attachment: fixed;
                 background-size: cover;
                 background-position: center;
             }}
-            h1, h3, p, label, .stMarkdown {{
-                color: white !important;
-                text-shadow: 2px 2px 8px #000000 !important;
+
+            /* FORÇAR TRANSPARÊNCIA: Isto remove as camadas brancas do Streamlit */
+            .stAppViewMain, .main, .block-container, [data-testid="stHeader"], [data-testid="stToolbar"] {{
+                background-color: rgba(0,0,0,0) !important;
             }}
-            .stSelectbox, .stNumberInput {{
-                background-color: rgba(0,0,0,0.4);
-                border-radius: 10px;
-                padding: 5px;
+
+            /* Criar um cartão escuro para os controlos serem legíveis */
+            div[data-testid="stVerticalBlock"] > div:has(div.stFrame), .stTabs {{
+                background: rgba(0,0,0,0.7) !important;
+                padding: 20px !important;
+                border-radius: 20px !important;
+                border: 1px solid #333 !important;
+            }}
+
+            /* Forçar cor das letras e títulos */
+            h1, h2, h3, p, label, .stMarkdown, span, div[data-testid="stMetricValue"] {{
+                color: white !important;
+                text-shadow: 2px 2px 4px #000000 !important;
+            }}
+
+            /* Ajuste dos inputs para não ficarem brancos */
+            input, .stSelectbox div {{
+                background-color: rgba(0,0,0,0.6) !important;
+                color: white !important;
             }}
             </style>
-            """, unsafe_allow_html=True)
-except Exception:
-    pass
+            """,
+            unsafe_allow_html=True
+        )
+    else:
+        st.error(f"⚠️ Erro: O ficheiro '{image_file}' não foi encontrado no GitHub!")
 
-# Identificação para a base de dados de música
+# Aplicar o fundo
+add_bg_from_local('fundo.png')
+
+# Identificação para MusicBrainz
 mb.set_useragent("HitsterSobreiroApp", "3.0", "teu@email.com")
 
-# --- FONTES ---
+# --- 3. FONTES ---
 URL_FOGOFRIO = "https://www.youtube.com/playlist?list=PLrMihvbkFsqCvEtiTvKoY78wzNa1udsfs"
 OUTRAS_FONTES = [
     "https://www.youtube.com/playlist?list=PLjg3drSMULZHbK0N6BGTCev1xdYX4gT9f",
@@ -55,7 +78,7 @@ OUTRAS_FONTES = [
     "https://www.youtube.com/playlist?list=PL_bKAgO9uCN0RNEZg2d85TUVPohzw9bxy"
 ]
 
-# --- FUNÇÕES ---
+# --- 4. FUNÇÕES ---
 def buscar_ano(titulo):
     busca = titulo.split('(')[0].split('[')[0].replace('Official Video', '').strip()
     try:
@@ -98,18 +121,21 @@ def criar_novo_excel(nome_ficheiro):
     df = pd.DataFrame(musicas_final)
     df.insert(0, 'N_Carta', range(1, len(df) + 1))
     df.to_excel(f"{nome_ficheiro}.xlsx", index=False)
-    status.success(f"✨ Pronto!")
+    status.success(f"✨ Baralho '{nome_ficheiro}.xlsx' pronto!")
 
-# --- INTERFACE ---
+# --- 5. INTERFACE ---
 st.title("🔥 Hitster by SOBREIRO")
-tab1, tab2 = st.tabs(["▶️ Jogar", "⚙️ Criar Baralhos"])
+tab1, tab2 = st.tabs(["▶️ JOGAR", "⚙️ CRIAR BARALHOS"])
 
 with tab2:
+    st.header("Fábrica de Baralhos")
     nome_input = st.text_input("Nome do novo baralho:")
-    if st.button("🚀 Gerar e Guardar Excel"):
+    if st.button("🚀 Gerar Excel"):
         if nome_input:
             criar_novo_excel(nome_input)
             st.cache_data.clear()
+        else:
+            st.error("Escreve um nome!")
 
 with tab1:
     ficheiros = glob.glob("*.xlsx")
@@ -118,22 +144,28 @@ with tab1:
         @st.cache_data
         def carregar_dados(nome): return pd.read_excel(nome)
         df_jogo = carregar_dados(escolha)
+        
         st.divider()
-        num = st.number_input(f"Nº da carta (1 a {len(df_jogo)}):", min_value=1, max_value=len(df_jogo), step=1, value=None)
+        num = st.number_input(f"Nº da carta:", min_value=1, max_value=len(df_jogo), step=1, value=None)
+
         if num:
             musica = df_jogo[df_jogo['N_Carta'] == num].iloc[0]
             video_id = musica['Link'].split("v=")[-1].split("&")[0]
+            
             st.markdown(f"### 🔊 Carta #{num}")
             st.components.v1.html(f"""
-                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden;">
-                    <iframe src="https://www.youtube-nocookie.com/embed/{video_id}?autoplay=0&rel=0&controls=1&playsinline=1" width="100%" height="160" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; color: #555; font-family: sans-serif; font-size: 11px; pointer-events: none; border-bottom: 1px solid #222;">
+                <div style="position: relative; width: 100%; height: 160px; background: #000; border-radius: 12px; overflow: hidden; border: 1px solid #333;">
+                    <iframe src="https://www.youtube-nocookie.com/embed/{video_id}?autoplay=0&rel=0&controls=1&playsinline=1" width="100%" height="160" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+                    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 60px; background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center; color: #555; font-family: sans-serif; font-size: 11px; pointer-events: none;">
                         🔒 SOBREIRO PLAYER • TÍTULO OCULTO
                     </div>
                 </div>
             """, height=180)
+            
             if st.button("Revelar Resposta 🔍"):
                 st.success(f"🎵 **{musica['Titulo']}**")
                 st.metric("Ano", musica['Ano'])
-    else: st.warning("⚠️ Cria um baralho primeiro.")
-
+                if musica['Origem'] == "Fogofrio":
+                    st.write("🔥 *Curadoria SOBREIRO*")
+    else:
+        st.warning("⚠️ Cria um baralho primeiro na aba lateral.")
